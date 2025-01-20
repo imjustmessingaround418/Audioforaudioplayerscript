@@ -1,0 +1,215 @@
+-- SCRIPT IS NOT MINE CREDITS TO OWNER
+-- Put the songs here name is the name and the url needs to be a direct download link like GitHub or smthn
+local songs = {
+    {name = "Blizzard Peaks (Act 1&2 Mix) - Sonic Rush Adventure [OST]", url = "https://github.com/imjustmessingaround418/Audioforaudioplayerscript/raw/refs/heads/main/Blizzard%20Peaks%20(Act%201&2%20Mix)%20-%20Sonic%20Rush%20Adventure%20%5BOST%5D%20%5B%20ezmp3.cc%20%5D.mp3"},
+    {name = "all my fellas silent dreams", url = "https://github.com/imjustmessingaround418/Audioforaudioplayerscript/raw/refs/heads/main/Frizk%20-%20ALL%20MY%20FELLAS%20(pose%204%20the%20camera)%20_%20Silent%20Dreams%20Remix%20%5B%20ezmp3.cc%20%5D%20(1).mp3"},
+    {name = "Cheatreal TPZREMAKE", url = "https://github.com/imjustmessingaround418/Audioforaudioplayerscript/raw/refs/heads/main/Iframe%20t+pazolite%20-%20Cheatreal%20%23TPZREMAKE%20%5B3hPfbnCSp3s%5D.mp3"}
+}
+
+local currentSongIndex = 1 -- Keep track of the current song index
+
+-- Function to download and play sound
+local function GetGitSound(GithubSnd, SoundName, callback)
+    local url = GithubSnd
+    local fileName = SoundName..".mp3"
+
+    -- Check if the file is already downloaded
+    if isfile(fileName) then
+        -- If file exists, proceed with loading the sound
+        callback(fileName)
+        return
+    end
+
+    -- Show downloading progress
+    local downloadingLabel = Instance.new("TextLabel")
+    downloadingLabel.Text = "Downloading " .. SoundName
+    downloadingLabel.Size = UDim2.new(0, 200, 0, 50)
+    downloadingLabel.Position = UDim2.new(0.5, -100, 0.5, -25)
+    downloadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    downloadingLabel.TextScaled = true
+    downloadingLabel.BackgroundTransparency = 0.5
+    downloadingLabel.Font = Enum.Font.Gotham
+    downloadingLabel.TextStrokeTransparency = 0.8
+    downloadingLabel.Parent = game.CoreGui
+
+    -- Start the download
+    local success, response = pcall(function() return game:HttpGet(url) end)
+    if success then
+        writefile(fileName, response)
+        downloadingLabel.Text = "Downloaded " .. SoundName
+        wait(2) -- Show "Downloaded" message for 2 seconds before removing
+    else
+        warn("Failed to download sound: " .. response)
+    end
+
+    downloadingLabel:Destroy()
+    callback(fileName) -- Call callback once the download is complete or file exists
+end
+
+-- Function to create and handle the audio player GUI
+local function CreateAudioPlayer(sound, songName)
+    -- Check if GUI already exists
+    if game.CoreGui:FindFirstChild("AudioPlayerGUI") then return end
+
+    -- Main GUI
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AudioPlayerGUI"
+    screenGui.Parent = game.CoreGui -- Parent to CoreGui for persistence across deaths
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Parent = screenGui
+    mainFrame.Size = UDim2.new(0, 400, 0, 100)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -50)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainFrame.Draggable = true
+    mainFrame.Active = true
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Parent = mainFrame
+    titleLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    titleLabel.Text = "Now Playing: " .. songName
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextScaled = true
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.Gotham
+    titleLabel.TextStrokeTransparency = 0.8
+    titleLabel.TextTransparency = 0.1
+
+    -- Frame for buttons
+    local buttonFrame = Instance.new("Frame")
+    buttonFrame.Parent = mainFrame
+    buttonFrame.Size = UDim2.new(1, 0, 0.7, 0)
+    buttonFrame.Position = UDim2.new(0, 0, 0.3, 0)
+    buttonFrame.BackgroundTransparency = 1
+
+    -- Arrange buttons in a line horizontally
+    local buttonWidth = 0.15
+    local buttonSpacing = 0.05
+
+    -- Play/Pause Button
+    local playPauseButton = Instance.new("TextButton")
+    playPauseButton.Parent = buttonFrame
+    playPauseButton.Size = UDim2.new(buttonWidth, 0, 1, 0)
+    playPauseButton.Position = UDim2.new(0, 0, 0, 0)
+    playPauseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    playPauseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playPauseButton.Text = "Play"
+    playPauseButton.Font = Enum.Font.Gotham
+    playPauseButton.TextScaled = true
+    playPauseButton.BorderSizePixel = 0
+
+    -- Loop Button
+    local loopButton = Instance.new("TextButton")
+    loopButton.Parent = buttonFrame
+    loopButton.Size = UDim2.new(buttonWidth, 0, 1, 0)
+    loopButton.Position = UDim2.new(buttonWidth + buttonSpacing, 0, 0, 0)
+    loopButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    loopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loopButton.Text = "Loop: Off"
+    loopButton.Font = Enum.Font.Gotham
+    loopButton.TextScaled = true
+    loopButton.BorderSizePixel = 0
+
+    -- Destroy Button
+    local destroyButton = Instance.new("TextButton")
+    destroyButton.Parent = buttonFrame
+    destroyButton.Size = UDim2.new(buttonWidth, 0, 1, 0)
+    destroyButton.Position = UDim2.new(2 * (buttonWidth + buttonSpacing), 0, 0, 0)
+    destroyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    destroyButton.Text = "Destroy"
+    destroyButton.Font = Enum.Font.Gotham
+    destroyButton.TextScaled = true
+    destroyButton.BorderSizePixel = 0
+
+    -- Next Button
+    local nextButton = Instance.new("TextButton")
+    nextButton.Parent = buttonFrame
+    nextButton.Size = UDim2.new(buttonWidth, 0, 1, 0)
+    nextButton.Position = UDim2.new(3 * (buttonWidth + buttonSpacing), 0, 0, 0)
+    nextButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    nextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nextButton.Text = "Next"
+    nextButton.Font = Enum.Font.Gotham
+    nextButton.TextScaled = true
+    nextButton.BorderSizePixel = 0
+
+    -- Back Button
+    local backButton = Instance.new("TextButton")
+    backButton.Parent = buttonFrame
+    backButton.Size = UDim2.new(buttonWidth, 0, 1, 0)
+    backButton.Position = UDim2.new(4 * (buttonWidth + buttonSpacing), 0, 0, 0)
+    backButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    backButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    backButton.Text = "Back"
+    backButton.Font = Enum.Font.Gotham
+    backButton.TextScaled = true
+    backButton.BorderSizePixel = 0
+
+    -- Functionality
+    local isPlaying = false
+    local isLooping = false
+    local lastTimePosition = 0 -- Store the time position
+
+    playPauseButton.MouseButton1Click:Connect(function()
+        if isPlaying then
+            lastTimePosition = sound.TimePosition -- Save current position before pausing
+            sound:Pause()
+            playPauseButton.Text = "Play"
+        else
+            sound.TimePosition = lastTimePosition -- Resume from saved position
+            sound:Play()
+            playPauseButton.Text = "Pause"
+        end
+        isPlaying = not isPlaying
+    end)
+
+    loopButton.MouseButton1Click:Connect(function()
+        isLooping = not isLooping
+        loopButton.Text = isLooping and "Loop: On" or "Loop: Off"
+        sound.Looped = isLooping
+    end)
+
+   destroyButton.MouseButton1Click:Connect(function()
+    sound:Stop() -- Stop the sound
+    sound:Destroy() -- Destroy the sound
+    screenGui:Destroy() -- Destroy the GUI
+end)
+
+    nextButton.MouseButton1Click:Connect(function()
+        currentSongIndex = (currentSongIndex % #songs) + 1
+        local nextSong = songs[currentSongIndex]
+        sound:Stop()
+        GetGitSound(nextSong.url, nextSong.name, function(fileName)
+            sound.SoundId = (getcustomasset or getsynasset)(fileName)
+            sound:Play()
+            titleLabel.Text = "Now Playing: " .. nextSong.name
+        end)
+    end)
+
+    backButton.MouseButton1Click:Connect(function()
+        currentSongIndex = (currentSongIndex - 2) % #songs + 1
+        local previousSong = songs[currentSongIndex]
+        sound:Stop()
+        GetGitSound(previousSong.url, previousSong.name, function(fileName)
+            sound.SoundId = (getcustomasset or getsynasset)(fileName)
+            sound:Play()
+            titleLabel.Text = "Now Playing: " .. previousSong.name
+        end)
+    end)
+
+    -- Start the first song
+    local song = songs[currentSongIndex]
+    GetGitSound(song.url, song.name, function(fileName)
+        sound.SoundId = (getcustomasset or getsynasset)(fileName)
+        sound:Play()
+        titleLabel.Text = "Now Playing: " .. song.name
+    end)
+end
+
+-- Call function to create the GUI and start playing the first song
+local sound = Instance.new("Sound")
+sound.Parent = game.Workspace
+CreateAudioPlayer(sound, songs[currentSongIndex].name)
